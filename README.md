@@ -1380,3 +1380,41 @@ curl -d '{"id":"0r7mg7"}' -H "content-type:application/json" http://localhost:30
 ```
 
 访问 [http://localhost:3000/api/calculate/sum?left=2&right=3](http://localhost:3000/api/calculate/sum?left=2&right=3) 可以得到 `{"answer":5}`。
+
+## 最佳 Seneca 应用结构实践
+
+### 推荐你这样做
+
+-   将业务逻辑与执行分开，放在单独的插件中，比如不同的Node模块、不同的项目甚至同一个项目下不同的文件都是可以的；
+
+-   使用执行脚本撰写您的应用程序，不要害怕为不同的上下文使用不同的脚本，它们看上去应该很短，比如像下面这样：
+
+    ```javascript
+    var SOME_CONFIG = process.env.SOME_CONFIG || 'some-default-value'
+
+    require('seneca')({ some_options: 123 })
+
+      // 已存在的 Seneca 插件
+      .use('community-plugin-0')
+      .use('community-plugin-1', {some_config: SOME_CONFIG})
+      .use('community-plugin-2')
+
+      // 业务逻辑插件
+      .use('project-plugin-module')
+      .use('../plugin-repository')
+      .use('./lib/local-plugin')
+
+      .listen( ... )
+      .client( ... )
+
+      .ready( function() {
+        // 当 Seneca 启动成功之后的自定义脚本
+      })
+    ```
+
+-   插件加载顺序很重要，这当然是一件好事，可以主上你对消息的成有绝对的控制权。
+
+### 不推荐你这样做
+
+-   将 Seneca 应用的启动与初始化同其它框架的启动与初始化放在一起了，永远记住，保持事务的简单；
+-   将 Seneca 实例当做变量到处传递。
