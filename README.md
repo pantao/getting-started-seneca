@@ -68,7 +68,7 @@ seneca.add('role:math, cmd:sum', (msg, reply) => {
 
 在匹配模式中， `role:math, cmd:sum` 匹配到了下面这个消息体：
 
-```json
+```javascript
 {
   role: 'math',
   cmd: 'sum',
@@ -79,7 +79,7 @@ seneca.add('role:math, cmd:sum', (msg, reply) => {
 
 并得到计自结果：
 
-```json
+```javascript
 {
   answer: 3
 }
@@ -186,3 +186,73 @@ null { answer: 12 }
 ```
 
 在上面合并到一起的代码中，我们发现， `seneca.act` 是可以进行链式调用的，`Seneca` 提供了一个链式API，调式调用是顺序执行的，但是不是串行，所以，返回的结果的顺序可能与调用顺序并不一样。
+
+## 扩展模式以增加新功能
+
+模式让你可以更加容易的扩展程序的功能，与 `if...else...` 语法不同的是，你可以通过增加更多的匹配模式以达到同样的功能。
+
+下面让我们扩展一下 `role: math, cmd: sum` 操作，它只接收整型数字，那么，怎么做？
+
+```javascript
+seneca.add({role: 'math', cmd: 'sum', integer: true}, function (msg, respond) {
+  var sum = Math.floor(msg.left) + Math.floor(msg.right)
+  respond(null, {answer: sum})
+})
+```
+
+现在，下面这条消息：
+
+```javascript
+{role: 'math', cmd: 'sum', left: 1.5, right: 2.5, integer: true}
+```
+
+将得到下面这样的结果：
+
+```javascript
+{answer: 3}  // == 1 + 2，小数部分已经被移除了
+```
+
+现在，你的两个模式都存在于系统中了，而且还存在交叉部分，那么 `Seneca` 最终会将消息匹配至哪条模式呢？原则是：更多匹配项目被匹配到的优先，被匹配到的属性越多，则优先级越高。
+
+[pattern-priority-testing.js]() 可以给我们更加直观的测试：
+
+```javascript
+const seneca = require('seneca')()
+
+seneca.add({role: 'math', cmd: 'sum'}, function (msg, respond) {
+  var sum = msg.left + msg.right
+  respond(null, {answer: sum})
+})
+
+// 下面两条消息都匹配 role: math, cmd: sum
+
+seneca.act({role: 'math', cmd: 'sum', left: 1.5, right: 2.5}, console.log)
+seneca.act({role: 'math', cmd: 'sum', left: 1.5, right: 2.5, integer: true}, console.log)
+
+setTimeout(() => {
+  seneca.add({role: 'math', cmd: 'sum', integer: true}, function (msg, respond) {
+    var sum = Math.floor(msg.left) + Math.floor(msg.right)
+    respond(null, { answer: sum })
+  })
+
+  // 下面这条消息同样匹配 role: math, cmd: sum
+  seneca.act({role: 'math', cmd: 'sum', left: 1.5, right: 2.5}, console.log)
+
+  // 但是，也匹配 role:math,cmd:sum,integer:true
+  // 但是因为更多属性被匹配到，所以，它的优先级更高
+  seneca.act({role: 'math', cmd: 'sum', left: 1.5, right: 2.5, integer: true}, console.log)
+}, 100)
+```
+
+输出结果应该像下面这样：
+
+```bash
+null { answer: 4 }
+null { answer: 4 }
+null { answer: 4 }
+null { answer: 3 }
+```
+
+在上面的代码中，因为系统中只存在 `role: math, cmd: sum` 模式，所以，都匹配到它，但是当 100ms 后，我们给系统中添加了一个 `role: math, cmd: sum, integer: true` 模式之后，结果就不一样了，匹配到更多的操作将有更高的优先级。
+
+这种设计，可以让我们的系统可以更加简单的添加新的功能，不管是在开发环境还是在生产环境中，你都可以在不需要修改现有代码的前提下即可更新新的服务，你只需要先好新的服务，然后启动新服务即可。
