@@ -35,8 +35,8 @@ const config = {
 
 const seneca = Seneca()
   .use(SenecaWeb, config)
-  .use('math')
   .use('api')
+  .client({type: 'tcp', pin: 'role:math'})
   .ready(() => {
     const server = seneca.export('web/context')();
     server.start(() => {

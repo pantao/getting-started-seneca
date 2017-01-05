@@ -834,7 +834,7 @@ module.exports = function api(options) {
       prefix: '/api',
       pin: 'role:api,path:*',
       map: {
-        calculate: { GET:true, suffix:'/:operation' }
+        calculate: { GET:true, suffix:'/{operation}' }
       }
     }}, respond)
   })
@@ -882,6 +882,7 @@ const config = {
 
 const seneca = Seneca()
   .use(SenecaWeb, config)
+  .use('math')
   .use('api')
   .ready(() => {
     const server = seneca.export('web/context')();
@@ -901,11 +902,76 @@ const seneca = Seneca()
     "cors": false
   },
   {
-    "path": "/api/calculate/:operation",
+    "path": "/api/calculate/{operation}",
     "method": "GET",
     "cors": false
   }
 ]
 ```
 
-这表示，我们已经成功的将模式匹配更新至 `hapi` 应用的路由中。
+这表示，我们已经成功的将模式匹配更新至 `hapi` 应用的路由中。访问 [http://localhost:3000/api/calculate/sum?left=1&right=2](http://localhost:3000/api/calculate/sum?left=1&right=2) ，将得到结果：
+
+```javascript
+{"answer":3}
+```
+
+在上面的示例中，我们直接将 `math` 插件也加载到了 `seneca` 实例中，其实我们可以更加合理的进行这种操作，如 [hapi-app-client.js](https://github.com/pantao/getting-started-seneca/blob/master/hapi-app-client.js) 文件所示：
+
+```javascript
+...
+const seneca = Seneca()
+  .use(SenecaWeb, config)
+  .use('api')
+  .client({type: 'tcp', pin: 'role:math'})
+  .ready(() => {
+    const server = seneca.export('web/context')();
+    server.start(() => {
+      server.log('server started on: ' + server.info.uri);
+    });
+  });
+```
+
+我们不注册 `math` 插件，而是使用 `client` 方法，将 `role:math` 发送给 `math-pin-service.js` 的服务，并且使用的是 `tcp` 连接，没错，你的微服务就是这样成型了。
+
+**注意：永远不要使用外部输入创建操作的消息体，永远显示地在内部创建，这可以有效避免注入攻击。**
+
+在上面的的初始化函数中，调用了一个 `role:web` 的模式操作，并且定义了一个 `routes` 属性，这将定义一个URL地址与操作模式的匹配规则，它有下面这些参数：
+
+- `prefix`：URL 前缀
+- `pin`： 需要映射的模式集
+- `map`：要用作 URL Endpoint 的 `pin` 通配符属性列表
+
+你的URL地址将开始于 `/api/`。
+
+`rol:api, path:*` 这个 `pin` 表示，映射任何有 `role="api"` 键值对，同时 `path` 属性被定义了的模式，在本例中，只有 `role:api,path:calculate` 符合该模式。
+
+`map` 属性是一个对象，它有一个 `calculate` 属性，对应的URL地址开始于：`/api/calculate`。
+
+按着， `calculate` 的值是一个对象，它表示了 `HTTP` 的 `GET` 方法是被允许的，并且URL应该有参数化的后缀（后缀就类于 `hapi` 的 `route` 规则中一样）。
+
+所以，你的完整地址是 `/api/calculate/{operation}`。
+
+然后，其它的消息属性都将从 URL query 对象或者 JSON body 中获得，在本示例中，因为使用的是 GET 方法，所以没有 body。
+
+`SenecaWeb` 将会通过 `msg.args` 来描述一次请求，它包括：
+
+- `body`：HTTP 请求的 `payload` 部分；
+- `query`：请求的 `querystring`；
+- `params`：请求的路径参数。
+
+现在，启动前面我们创建的微服务：
+
+```bash
+node math-pin-service.js --seneca.log=plugin:math
+```
+
+然后再启动我们的应用：
+
+```bash
+node hapi-app.js --seneca.log=plugin:web,plugin:api
+```
+
+访问下面的地址：
+
+- [http://localhost:3000/api/calculate/product?left=2&right=3](http://localhost:3000/api/calculate/product?left=2&right=3) 得到 `{"answer":6}`
+- [http://localhost:3000/api/calculate/sum?left=2&right=3](http://localhost:3000/api/calculate/sum?left=2&right=3) 得到 `{"answer":5}`
