@@ -386,3 +386,220 @@ seneca
 > 错误消息应该只被用于描述错误的输入或者内部失败信息等，比如，如果你执行了一些数据库的查询，返回没有任何数据，这并不是一个错误，而仅仅只是数据库的事实的反馈，但是如果连接数据库失败，那就是一个错误了。
 
 上面的代码可以在 [sum-valid.js](https://github.com/pantao/getting-started-seneca/blob/master/sum-valid.js) 文件中找到。
+
+## 使用插件组织模式
+
+一个 `seneca` 实例，其实就只是多个 `Action Patterm` 的集合而已，你可以使用命名空间的方式来组织操作模式，例如在前面的示例中，我们都使用了 `role: math`，为了帮助日志记录和调试， `Seneca` 还支持一个简约的插件支持。
+
+同样，Seneca插件只是一组操作模式的集合，它可以有一个名称，用于注释日志记录条目，还可以给插件一组选项来控制它们的行为，插件还提供了以正确的顺序执行初始化函数的机制，例如，您希望在尝试从数据库读取数据之前建立数据库连接。
+
+简单来说，Seneca插件就只是一个具有单个参数选项的函数，你将这个插件定义函数传递给 `seneca.use` 方法，下面这个是最小的Seneca插件（其实它什么也没做！）：
+
+```javascript
+function minimal_plugin(options) {
+  console.log(options)
+}
+
+require('seneca')()
+  .use(minimal_plugin, {foo: 'bar'})
+```
+
+`seneca.use` 方法接受两个参数：
+
+1. `plugin` ：插件定义函数或者一个插件名称；
+2. `options` ：插件配置选项
+
+上面的示例代码执行后，打印出来的日志看上去是这样的：
+
+```bash
+{"kind":"notice","notice":"hello seneca 3qk0ij5t2bta/1483584697034/62768/3.2.2/-","level":"info","when":1483584697057}
+(node:62768) DeprecationWarning: 'root' is deprecated, use 'global'
+{ foo: 'bar' }
+```
+
+Seneca 还提供了详细日志记录功能，可以提供为开发或者生产提供更多的日志信息，通常的，日志级别被设置为 `INFO`，它并不会打印太多日志信息，如果想看到所有的日志信息，试试以下面这样的方式启动你的服务：
+
+```bash
+node minimal-plugin.js --seneca.log.all
+```
+
+会不会被吓一跳？当然，你还可以过滤日志信息：
+
+```bash
+node minimal-plugin.js --seneca.log.all | grep plugin:define
+```
+
+通过日志我们可以看到， seneca 加载了很多内置的插件，比如 `basic`、`transport`、`web` 以及 `mem-store`，这些插件为我们提供了创建微服务的基础功能，同样，你应该也可以看到 `minimal_plugin` 插件。
+
+现在，让我们为这个插件添加一些操作模式：
+
+```javascript
+function math(options) {
+
+  this.add('role:math,cmd:sum', function (msg, respond) {
+    respond(null, { answer: msg.left + msg.right })
+  })
+
+  this.add('role:math,cmd:product', function (msg, respond) {
+    respond(null, { answer: msg.left * msg.right })
+  })
+
+}
+
+require('seneca')()
+  .use(math)
+  .act('role:math,cmd:sum,left:1,right:2', console.log)
+```
+
+运行 [math-plugin.js](https://github.com/pantao/getting-started-seneca/blob/master/math-plugin.js) 文件，得到下面这样的信息：
+
+```bash
+null { answer: 3 }
+```
+
+看打印出来的一条日志：
+
+```javascript
+{
+  "actid": "7ubgm65mcnfl/uatuklury90r",
+  "msg": {
+    "role": "math",
+    "cmd": "sum",
+    "left": 1,
+    "right": 2,
+    "meta$": {
+      "id": "7ubgm65mcnfl/uatuklury90r",
+      "tx": "uatuklury90r",
+      "pattern": "cmd:sum,role:math",
+      "action": "(bjx5u38uwyse)",
+      "plugin_name": "math",
+      "plugin_tag": "-",
+      "prior": {
+        "chain": [],
+        "entry": true,
+        "depth": 0
+      },
+      "start": 1483587274794,
+      "sync": true
+    },
+    "plugin$": {
+      "name": "math",
+      "tag": "-"
+    },
+    "tx$": "uatuklury90r"
+  },
+  "entry": true,
+  "prior": [],
+  "meta": {
+    "plugin_name": "math",
+    "plugin_tag": "-",
+    "plugin_fullname": "math",
+    "raw": {
+      "role": "math",
+      "cmd": "sum"
+    },
+    "sub": false,
+    "client": false,
+    "args": {
+      "role": "math",
+      "cmd": "sum"
+    },
+    "rules": {},
+    "id": "(bjx5u38uwyse)",
+    "pattern": "cmd:sum,role:math",
+    "msgcanon": {
+      "cmd": "sum",
+      "role": "math"
+    },
+    "priorpath": ""
+  },
+  "client": false,
+  "listen": false,
+  "transport": {},
+  "kind": "act",
+  "case": "OUT",
+  "duration": 35,
+  "result": {
+    "answer": 3
+  },
+  "level": "debug",
+  "plugin_name": "math",
+  "plugin_tag": "-",
+  "pattern": "cmd:sum,role:math",
+  "when": 1483587274829
+}
+```
+
+所有的该插件的日志都被自动的添加了 `plugin` 属性。
+
+在 Seneca 的世界中，我们通过插件组织各种操作模式集合，这让日志与调试变得更简单，然后你还可以将多个插件合并成为各种微服务，在接下来的章节中，我们将创建一个 `math` 服务。
+
+插件通过需要进行一些初始化的工作，比如连接数据库等，但是，你并不需要在插件的定义函数中去执行这些初始化，定义函数被设计为同步执行的，因为它的所有操作都是在定义一个插件，事实上，你不应该在定义函数中调用 `seneca.act` 方法，只调用 `seneca.add` 方法。
+
+要初始化插件，你需要定义一个特殊的匹配模式 `init: <plugin-name>`，对于每一个插件，将按顺序调用此操作模式，`init` 函数必须调用其 `callback` 函数，并且不能有错误发生，如果插件初始化失败，则 Seneca 会立即退出 Node 进程。所以的插件初始化工作都必须在任何操作执行之前完成。
+
+为了演示初始化，让我们向 `math` 插件添加简单的自定义日志记录，当插件启动时，它打开一个日志文件，并将所有操作的日志写入文件，文件需要成功打开并且可写，如果这失败，微服务启动就应该失败。
+
+```javascript
+const fs = require('fs')
+
+function math(options) {
+
+  // 日志记录函数，通过 init 函数创建
+  var log
+
+  // 将所有模式放在一起会上我们查找更方便
+  this.add('role:math,cmd:sum',     sum)
+  this.add('role:math,cmd:product', product)
+
+  // 这就是那个特殊的初始化操作
+  this.add('init:math', init)
+
+  function init(msg, respond) {
+    // 将日志记录至一个特写的文件中
+    fs.open(options.logfile, 'a', function (err, fd) {
+
+      // 如果不能读取或者写入该文件，则返回错误，这会导致 Seneca 启动失败
+      if (err) return respond(err)
+
+      log = makeLog(fd)
+      respond()
+    })
+  }
+
+  function sum(msg, respond) {
+    var out = { answer: msg.left + msg.right }
+    log('sum '+msg.left+'+'+msg.right+'='+out.answer+'\n')
+    respond(null, out)
+  }
+
+  function product(msg, respond) {
+    var out = { answer: msg.left * msg.right }
+    log('product '+msg.left+'*'+msg.right+'='+out.answer+'\n')
+    respond(null, out)
+  }
+
+  function makeLog(fd) {
+    return function (entry) {
+      fs.write(fd, new Date().toISOString()+' '+entry, null, 'utf8', function (err) {
+        if (err) return console.log(err)
+
+        // 确保日志条目已刷新
+        fs.fsync(fd, function (err) {
+          if (err) return console.log(err)
+        })
+      })
+    }
+  }
+}
+
+require('seneca')()
+  .use(math, {logfile:'./math.log'})
+  .act('role:math,cmd:sum,left:1,right:2', console.log)
+```
+
+在上面这个插件的代码中，匹配模式被组织在插件的顶部，以便它们更容易被看到，函数在这些模式下面一点被定义，您还可以看到如何使用选项提供自定义日志文件的位置（不言而喻，这不是生产日志！）。
+
+初始化函数 `init` 执行一些异步文件系统工作，因此必须在执行任何操作之前完成。 如果失败，整个服务将无法初始化。要查看失败时的操作，可以尝试将日志文件位置更改为无效的，例如 `/math.log`。
+
+以上代码可以在 [math-plugin-init.js](https://github.com/pantao/getting-started-seneca/blob/master/math-plugin-init.js) 文件中找到。
