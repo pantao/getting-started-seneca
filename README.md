@@ -806,3 +806,106 @@ require('seneca')()
 ```bash
 node math-pin-service.js --seneca.log=plugin:math
 ```
+
+## Web 服务集成
+
+Seneca不是一个Web框架。 但是，您仍然需要将其连接到您的Web服务API，你永远要记住的是，不要将你的内部行为模式暴露在外面，这不是一个好的安全的实践，相反的，你应该定义一组API模式，比如用属性 `role：api`，然后你可以将它们连接到你的内部微服务。
+
+下面是我们定义 [api.js](https://github.com/pantao/getting-started-seneca/blob/master/api.js) 插件。
+
+```javascript
+module.exports = function api(options) {
+
+  var validOps = { sum:'sum', product:'product' }
+
+  this.add('role:api,path:calculate', function (msg, respond) {
+    var operation = msg.args.params.operation
+    var left = msg.args.query.left
+    var right = msg.args.query.right
+    this.act('role:math', {
+      cmd:   validOps[operation],
+      left:  left,
+      right: right,
+    }, respond)
+  })
+
+  this.add('init:api', function (msg, respond) {
+    this.act('role:web',{routes:{
+      prefix: '/api',
+      pin: 'role:api,path:*',
+      map: {
+        calculate: { GET:true, suffix:'/:operation' }
+      }
+    }}, respond)
+  })
+
+}
+```
+
+然后，我们使用 `hapi` 作为Web框架，建了 [hapi-app.js](https://github.com/pantao/getting-started-seneca/blob/master/hapi-app.js) 应用：
+
+```javascript
+const Hapi = require('hapi');
+const Seneca = require('seneca');
+const SenecaWeb = require('seneca-web');
+
+const config = {
+  adapter: require('seneca-web-adapter-hapi'),
+  context: (() => {
+    const server = new Hapi.Server();
+    server.connection({
+      port: 3000
+    });
+
+    server.route({
+      path: '/routes',
+      method: 'get',
+      handler: (request, reply) => {
+        const routes = server.table()[0].table.map(route => {
+          return {
+            path: route.path,
+            method: route.method.toUpperCase(),
+            description: route.settings.description,
+            tags: route.settings.tags,
+            vhost: route.settings.vhost,
+            cors: route.settings.cors,
+            jsonp: route.settings.jsonp,
+          }
+        })
+        reply(routes)
+      }
+    });
+
+    return server;
+  })()
+};
+
+const seneca = Seneca()
+  .use(SenecaWeb, config)
+  .use('api')
+  .ready(() => {
+    const server = seneca.export('web/context')();
+    server.start(() => {
+      server.log('server started on: ' + server.info.uri);
+    });
+  });
+```
+
+启动 `hapi-app.js` 之后，访问 [http://localhost:3000/routes](http://localhost:3000/routes)，你便可以看到下面这样的信息：
+
+```javascript
+[
+  {
+    "path": "/routes",
+    "method": "GET",
+    "cors": false
+  },
+  {
+    "path": "/api/calculate/:operation",
+    "method": "GET",
+    "cors": false
+  }
+]
+```
+
+这表示，我们已经成功的将模式匹配更新至 `hapi` 应用的路由中。

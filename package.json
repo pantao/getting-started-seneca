@@ -10,6 +10,9 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "seneca": "^3.2.2"
+    "hapi": "^16.1.0",
+    "seneca": "^3.2.2",
+    "seneca-web": "^2.0.0",
+    "seneca-web-adapter-hapi": "^1.0.2"
   }
 }
