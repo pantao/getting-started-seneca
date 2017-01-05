@@ -788,3 +788,21 @@ require('seneca')()
   // 本地操作
   .act('say:hello',console.log)
 ```
+
+你可以通过各种过滤器来自定义日志的打印，以跟踪消息的流动，使用 `--seneca...` 参数，支持以下配置：
+
+- `date-time`： log 条目何时被创建；
+- `seneca-id`： Seneca process ID；
+- `level`：`DEBUG`、`INFO`、`WARN`、`ERROR` 以及 `FATAL` 中任何一个；
+- `type`：条目编码，比如 `act`、`plugin` 等；
+- `plugin`：插件名称，不是插件内的操作将表示为 `root$`；
+- `case`： 条目的事件：`IN`、`ADD`、`OUT` 等
+- `action-id/transaction-id`：跟踪标识符，*在网络中永远保持一致*；
+- `pin`：`action` 匹配模式；
+- `message`：入/出参消息体
+
+如果你运行上面的进程，使用了 `--seneca.log.all`，则会打印出所有日志，如果你只想看 `math` 插件打印的日志，可以像下面这样启动服务：
+
+```bash
+node math-pin-service.js --seneca.log=plugin:math
+```
