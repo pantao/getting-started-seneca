@@ -212,9 +212,11 @@ seneca.add({role: 'math', cmd: 'sum', integer: true}, function (msg, respond) {
 {answer: 3}  // == 1 + 2，小数部分已经被移除了
 ```
 
+代码可在 [sum-integer.js](https://github.com/pantao/getting-started-seneca/blob/master/sum-integer.js) 中查看。
+
 现在，你的两个模式都存在于系统中了，而且还存在交叉部分，那么 `Seneca` 最终会将消息匹配至哪条模式呢？原则是：更多匹配项目被匹配到的优先，被匹配到的属性越多，则优先级越高。
 
-[pattern-priority-testing.js]() 可以给我们更加直观的测试：
+[pattern-priority-testing.js](https://github.com/pantao/getting-started-seneca/blob/master/pattern-priority-testing.js) 可以给我们更加直观的测试：
 
 ```javascript
 const seneca = require('seneca')()
@@ -256,3 +258,50 @@ null { answer: 3 }
 在上面的代码中，因为系统中只存在 `role: math, cmd: sum` 模式，所以，都匹配到它，但是当 100ms 后，我们给系统中添加了一个 `role: math, cmd: sum, integer: true` 模式之后，结果就不一样了，匹配到更多的操作将有更高的优先级。
 
 这种设计，可以让我们的系统可以更加简单的添加新的功能，不管是在开发环境还是在生产环境中，你都可以在不需要修改现有代码的前提下即可更新新的服务，你只需要先好新的服务，然后启动新服务即可。
+
+## 基于模式的代码复用
+
+模式操作还可以调用其它的操作，所以，这样我们可以达到代码复用的需求：
+
+```javascript
+const seneca = require('seneca')()
+
+seneca.add('role: math, cmd: sum', function (msg, respond) {
+  var sum = msg.left + msg.right
+  respond(null, {answer: sum})
+})
+
+seneca.add('role: math, cmd: sum, integer: true', function (msg, respond) {
+  // 复用 role:math, cmd:sum
+  this.act({
+    role: 'math',
+    cmd: 'sum',
+    left: Math.floor(msg.left),
+    right: Math.floor(msg.right)
+  }, respond)
+})
+
+// 匹配 role:math,cmd:sum
+seneca.act('role: math, cmd: sum, left: 1.5, right: 2.5',console.log)
+
+// 匹配 role:math,cmd:sum,integer:true
+seneca.act('role: math, cmd: sum, left: 1.5, right: 2.5, integer: true', console.log)
+```
+
+在上面的示例代码中，我们使用了 `this.act` 而不是前面的 `seneca.act`，那是因为，在 `action` 函数中，上下文关系变量 `this` ，引用了当前的 `seneca` 实例，这样你就可以在任何一个 `action` 函数中，访问到该 `action` 调用的整个上下文。
+
+在上面的代码中，我们使用了 JSON 缩写形式来描述模式与消息， 比如，下面是对象字面量：
+
+```javascript
+{role: 'math', cmd: 'sum', left: 1.5, right: 2.5}
+```
+
+缩写模式为：
+
+```text
+'role: math, cmd: sum, left: 1.5, right: 2.5'
+```
+
+[jsonic](https://github.com/rjrodger/jsonic) 这种格式，提供了一种以字符串字面量来表达对象的简便方式，这使得我们可以创建更加简单的模式和消息。
+
+上面的代码保存在了 [sum-reuse.js](https://github.com/pantao/getting-started-seneca/blob/master/sum-reuse.js) 文件中。
