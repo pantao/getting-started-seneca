@@ -603,3 +603,133 @@ require('seneca')()
 初始化函数 `init` 执行一些异步文件系统工作，因此必须在执行任何操作之前完成。 如果失败，整个服务将无法初始化。要查看失败时的操作，可以尝试将日志文件位置更改为无效的，例如 `/math.log`。
 
 以上代码可以在 [math-plugin-init.js](https://github.com/pantao/getting-started-seneca/blob/master/math-plugin-init.js) 文件中找到。
+
+## 创建微服务
+
+现在让我们把 `math` 插件变成一个真正的微服务。首先，你需要组织你的插件。 `math` 插件的业务逻辑 —— 即它提供的功能，与它以何种方式与外部世界通信是分开的，你可能会暴露一个Web服务，也有可能在消息总线上监听。
+
+将业务逻辑（即插件定义）放在其自己的文件中是有意义的。 Node.js 模块即可完美的实现，创建一个名为 [math.js](https://github.com/pantao/getting-started-seneca/blob/master/math.js) 的文件，内容如下：
+
+```javascript
+module.exports = function math(options) {
+
+  this.add('role:math,cmd:sum', function sum(msg, respond) {
+    respond(null, { answer: msg.left + msg.right })
+  })
+
+  this.add('role:math,cmd:product', function product(msg, respond) {
+    respond(null, { answer: msg.left * msg.right })
+  })
+
+  this.wrap('role:math', function (msg, respond) {
+    msg.left  = Number(msg.left).valueOf()
+    msg.right = Number(msg.right).valueOf()
+    this.prior(msg, respond)
+  })
+}
+```
+
+然后，我们可以在需要引用它的文件中像下面这样添加到我们的微服务系统中：
+
+```javascript
+// 下面这两种方式都是等价的（还记得我们前面讲过的 `seneca.use` 方法的两个参数吗？）
+require('seneca')()
+  .use(require('./math.js'))
+  .act('role:math,cmd:sum,left:1,right:2', console.log)
+
+require('seneca')()
+  .use('math') // 在当前目录下找到 `./math.js`
+  .act('role:math,cmd:sum,left:1,right:2', console.log)
+```
+
+`seneca.wrap` 方法可以匹配一组模式，同使用相同的动作扩展函数覆盖至所有被匹配的模式，这与为每一个组模式手动调用 `seneca.add` 去扩展可以得到一样的效果，它需要两个参数：
+
+1. `pin` ：模式匹配模式
+2. `action` ：扩展的 `action` 函数
+
+`pin` 是一个可以匹配到多个模式的模式，它可以匹配到多个模式，比如 `role:math` 这个 `pin` 可以匹配到 `role:math, cmd:sum` 与 `role:math, cmd:product`。
+
+在上面的示例中，我们在最后面的 `wrap` 函数中，确保了，任何传递给 `role:math` 的消息体中 `left` 与 `right` 值都是数字，即使我们传递了字符串，也可以被自动的转换为数字。
+
+有时，查看 Seneca 实例中有哪些操作是被重写了是很有用的，你可以在启动应用时，加上 `--seneca.print.tree` 参数即可，我们先创建一个 [math-tree.js](https://github.com/pantao/getting-started-seneca/blob/master/math-tree.js) 文件，填入以下内容：
+
+```javascript
+require('seneca')()
+  .use('math')
+```
+
+然后再执行它：
+
+```bash
+❯ node math-tree.js --seneca.print.tree
+{"kind":"notice","notice":"hello seneca abs0eg4hu04h/1483589278500/65316/3.2.2/-","level":"info","when":1483589278522}
+(node:65316) DeprecationWarning: 'root' is deprecated, use 'global'
+Seneca action patterns for instance: abs0eg4hu04h/1483589278500/65316/3.2.2/-
+├─┬ cmd:sum
+│ └─┬ role:math
+│   └── # math, (15fqzd54pnsp),
+│       # math, (qqrze3ub5vhl), sum
+└─┬ cmd:product
+  └─┬ role:math
+    └── # math, (qnh86mgin4r6),
+        # math, (4nrxi5f6sp69), product
+```
+
+从上面你可以看到很多的键/值对，并且以树状结构展示了重写，所有的 `Action` 函数展示的格式都是 `#plugin, (action-id), function-name`。
+
+但是，到现在为止，所有的操作都还存在于同一个进程中，接下来，让我们先创建一个名为 [math-service.js](https://github.com/pantao/getting-started-seneca/blob/master/math-service.js) 的文件，填入以下内容：
+
+```javascript
+require('seneca')()
+  .use('math')
+  .listen()
+```
+
+然后启动该脚本，即可启动我们的微服务，它会启动一个进程，并通过 `10101` 端口监听HTTP请求，它不是一个 Web 服务器，在此时， `HTTP` 仅仅作为消息的传输机制。
+
+你现在可以访问 [http://localhost:10101/act?role=math&cmd=sum&left=1&right=2](http://localhost:10101/act?role=math&cmd=sum&left=1&right=2) 即可看到结果，或者使用 `curl` 命令：
+
+```bash
+curl -d '{"role":"math","cmd":"sum","left":1,"right":2}' http://localhost:10101/act
+```
+
+两种方式都可以看到结果：
+
+```javascript
+{"answer":3}
+```
+
+接下来，你需要一个微服务客户端 [math-client.js](https://github.com/pantao/getting-started-seneca/blob/master/math-client.js)：
+
+```javascript
+require('seneca')()
+  .client()
+  .act('role:math,cmd:sum,left:1,right:2',console.log)
+```
+
+打开一个新的终端，执行该脚本：
+
+```bash
+null { answer: 3 } { id: '7uuptvpf8iff/9wfb26kbqx55',
+  accept: '043di4pxswq7/1483589685164/65429/3.2.2/-',
+  track: undefined,
+  time:
+   { client_sent: '0',
+     listen_recv: '0',
+     listen_sent: '0',
+     client_recv: 1483589898390 } }
+```
+
+在 `Seneca` 中，我们通过 `seneca.listen` 方法创建微服务，然后通过 `seneca.client` 去与微服务进行通信。在上面的示例中，我们使用的都是 Seneca 的默认配置，比如 `HTTP` 协议监听 `10101` 端口，但 `seneca.listen` 与 `seneca.client` 方法都可以接受下面这些参数，以达到定抽的功能：
+
+- `port` ：可选的数字，表示端口号；
+- `host` ：可先的字符串，表示主机名或者IP地址；
+- `spec` ：可选的对象，完整的定制对象
+
+> **注意**：在 Windows 系统中，如果未指定 `host`， 默认会连接 `0.0.0.0`，这是没有任何用处的，你可以设置 `host` 为 `localhost`。
+
+只要 `client` 与 `listen` 的端口号与主机一致，它们就可以进行通信：
+
+- seneca.client(8080) → seneca.listen(8080)
+- seneca.client(8080, '192.168.0.2') → seneca.listen(8080, '192.168.0.2')
+- seneca.client({ port: 8080, host: '192.168.0.2' }) → seneca.listen({ port: 8080, host: '192.168.0.2' })
