@@ -733,3 +733,58 @@ null { answer: 3 } { id: '7uuptvpf8iff/9wfb26kbqx55',
 - seneca.client(8080) → seneca.listen(8080)
 - seneca.client(8080, '192.168.0.2') → seneca.listen(8080, '192.168.0.2')
 - seneca.client({ port: 8080, host: '192.168.0.2' }) → seneca.listen({ port: 8080, host: '192.168.0.2' })
+
+Seneca 为你提供的 **无依赖传输** 特性，让你在进行业务逻辑开发时，不需要知道消息如何传输或哪些服务会得到它们，而是在服务设置代码或配置中指定，比如 `math.js` 插件中的代码永远不需要改变，我们就可以任意的改变传输方式。
+
+虽然 `HTTP` 协议很方便，但是并不是所有时间都合适，另一个常用的协议是 `TCP`，我们可以很容易的使用 `TCP` 协议来进行数据的传输，尝试下面这两个文件：
+
+[math-service-tcp.js](https://github.com/pantao/getting-started-seneca/blob/master/math-service-tcp.js) :
+
+```javascript
+require('seneca')()
+  .use('math')
+  .listen({type: 'tcp'})
+```
+
+[math-client-tcp.js](https://github.com/pantao/getting-started-seneca/blob/master/math-client-tcp.js)
+
+```javascript
+require('seneca')()
+  .client({type: 'tcp'})
+  .act('role:math,cmd:sum,left:1,right:2',console.log)
+```
+
+默认情况下， `client/listen` 并未指定哪些消息将发送至哪里，只是本地定义了模式的话，会发送至本地的模式中，否则会全部发送至服务器中，我们可以通过一些配置来定义哪些消息将发送到哪些服务中，你可以使用一个 `pin` 参数来做这件事情。
+
+让我们来创建一个应用，它将通过 TCP 发送所有 `role:math` 消息至服务，而把其它的所有消息都在发送至本地：
+
+[math-pin-service.js](https://github.com/pantao/getting-started-seneca/blob/master/math-pin-service.js)：
+
+```javascript
+require('seneca')()
+
+  .use('math')
+
+  // 监听 role:math 消息
+  // 重要：必须匹配客户端
+  .listen({ type: 'tcp', pin: 'role:math' })
+```
+
+[math-pin-client.js](https://github.com/pantao/getting-started-seneca/blob/master/math-pin-client.js)：
+
+```javascript
+require('seneca')()
+
+  // 本地模式
+  .add('say:hello', function (msg, respond){ respond(null, {text: "Hi!"}) })
+
+  // 发送 role:math 模式至服务
+  // 注意：必须匹配服务端
+  .client({ type: 'tcp', pin: 'role:math' })
+
+  // 远程操作
+  .act('role:math,cmd:sum,left:1,right:2',console.log)
+
+  // 本地操作
+  .act('say:hello',console.log)
+```
