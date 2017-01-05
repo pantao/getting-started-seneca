@@ -12,7 +12,7 @@
 
 在本文接下来的内容中，我们将一同基于 Seneca 构建一些微服务。
 
-## 模式（ *Patterns* ）
+# 模式（ _Patterns_ ）
 
 让我们从一点特别简单的代码开始，我们将创建两个微服务，一个会进行数学计算，另一个去调用它：
 
@@ -46,7 +46,7 @@ seneca.act({
 
 到目前为止，所有这一切都发生在同一个进程中，没有网络流量产生，进程内的函数调用也是基于消息传输。
 
-`seneca.add` 方法，添加了一个新的动作模式（*Action Pattern*）至 `Seneca` 实例中，它有两个参数：
+`seneca.add` 方法，添加了一个新的动作模式（_Action Pattern_）至 `Seneca` 实例中，它有两个参数：
 
 1. `pattern` ：用于匹配 Seneca 实例中 `JSON` 消息体的模式；
 2. `action` ：当模式被匹配时执行的操作
@@ -108,13 +108,13 @@ seneca.act({
 });
 ```
 
-[sum.js](https://github.com/pantao/getting-started-seneca/blob/master/sum.js)  示例文件，向你展示了如何定义并创建一个 Action 以及如何呼起一个 Action，但它们都发生在一个进程中，接下来，我们很快就会展示如何拆分成不同的代码和多个进程。
+[sum.js](https://github.com/pantao/getting-started-seneca/blob/master/sum.js) 示例文件，向你展示了如何定义并创建一个 Action 以及如何呼起一个 Action，但它们都发生在一个进程中，接下来，我们很快就会展示如何拆分成不同的代码和多个进程。
 
-## 匹配模式如何工作？
+# 匹配模式如何工作？
 
-模式——而不是网络地址或者会话，让你可以更加容易的扩展或增强您的系统，这样做，让添加新的微服务变得更简单。
+模式----而不是网络地址或者会话，让你可以更加容易的扩展或增强您的系统，这样做，让添加新的微服务变得更简单。
 
-现在让我们给系统再添加一个新的功能——计算两个数字的乘积。
+现在让我们给系统再添加一个新的功能----计算两个数字的乘积。
 
 我们想要发送的消息看起来像下面这样的：
 
@@ -187,7 +187,7 @@ null { answer: 12 }
 
 在上面合并到一起的代码中，我们发现， `seneca.act` 是可以进行链式调用的，`Seneca` 提供了一个链式API，调式调用是顺序执行的，但是不是串行，所以，返回的结果的顺序可能与调用顺序并不一样。
 
-## 扩展模式以增加新功能
+# 扩展模式以增加新功能
 
 模式让你可以更加容易的扩展程序的功能，与 `if...else...` 语法不同的是，你可以通过增加更多的匹配模式以达到同样的功能。
 
@@ -259,7 +259,7 @@ null { answer: 3 }
 
 这种设计，可以让我们的系统可以更加简单的添加新的功能，不管是在开发环境还是在生产环境中，你都可以在不需要修改现有代码的前提下即可更新新的服务，你只需要先好新的服务，然后启动新服务即可。
 
-## 基于模式的代码复用
+# 基于模式的代码复用
 
 模式操作还可以调用其它的操作，所以，这样我们可以达到代码复用的需求：
 
@@ -306,7 +306,7 @@ seneca.act('role: math, cmd: sum, left: 1.5, right: 2.5, integer: true', console
 
 上面的代码保存在了 [sum-reuse.js](https://github.com/pantao/getting-started-seneca/blob/master/sum-reuse.js) 文件中。
 
-## 模式是唯一的
+# 模式是唯一的
 
 你定义的 Action 模式都是唯一了，它们只能触发一个函数，模式的解析规则如下：
 
@@ -387,7 +387,7 @@ seneca
 
 上面的代码可以在 [sum-valid.js](https://github.com/pantao/getting-started-seneca/blob/master/sum-valid.js) 文件中找到。
 
-## 使用插件组织模式
+# 使用插件组织模式
 
 一个 `seneca` 实例，其实就只是多个 `Action Patterm` 的集合而已，你可以使用命名空间的方式来组织操作模式，例如在前面的示例中，我们都使用了 `role: math`，为了帮助日志记录和调试， `Seneca` 还支持一个简约的插件支持。
 
@@ -604,9 +604,9 @@ require('seneca')()
 
 以上代码可以在 [math-plugin-init.js](https://github.com/pantao/getting-started-seneca/blob/master/math-plugin-init.js) 文件中找到。
 
-## 创建微服务
+# 创建微服务
 
-现在让我们把 `math` 插件变成一个真正的微服务。首先，你需要组织你的插件。 `math` 插件的业务逻辑 —— 即它提供的功能，与它以何种方式与外部世界通信是分开的，你可能会暴露一个Web服务，也有可能在消息总线上监听。
+现在让我们把 `math` 插件变成一个真正的微服务。首先，你需要组织你的插件。 `math` 插件的业务逻辑 ---- 即它提供的功能，与它以何种方式与外部世界通信是分开的，你可能会暴露一个Web服务，也有可能在消息总线上监听。
 
 将业务逻辑（即插件定义）放在其自己的文件中是有意义的。 Node.js 模块即可完美的实现，创建一个名为 [math.js](https://github.com/pantao/getting-started-seneca/blob/master/math.js) 的文件，内容如下：
 
@@ -687,7 +687,7 @@ require('seneca')()
 
 然后启动该脚本，即可启动我们的微服务，它会启动一个进程，并通过 `10101` 端口监听HTTP请求，它不是一个 Web 服务器，在此时， `HTTP` 仅仅作为消息的传输机制。
 
-你现在可以访问 [http://localhost:10101/act?role=math&cmd=sum&left=1&right=2](http://localhost:10101/act?role=math&cmd=sum&left=1&right=2) 即可看到结果，或者使用 `curl` 命令：
+你现在可以访问 <http://localhost:10101/act?role=math&cmd=sum&left=1&right=2> 即可看到结果，或者使用 `curl` 命令：
 
 ```bash
 curl -d '{"role":"math","cmd":"sum","left":1,"right":2}' http://localhost:10101/act
@@ -797,7 +797,7 @@ require('seneca')()
 - `type`：条目编码，比如 `act`、`plugin` 等；
 - `plugin`：插件名称，不是插件内的操作将表示为 `root$`；
 - `case`： 条目的事件：`IN`、`ADD`、`OUT` 等
-- `action-id/transaction-id`：跟踪标识符，*在网络中永远保持一致*；
+- `action-id/transaction-id`：跟踪标识符，_在网络中永远保持一致_；
 - `pin`：`action` 匹配模式；
 - `message`：入/出参消息体
 
@@ -807,7 +807,7 @@ require('seneca')()
 node math-pin-service.js --seneca.log=plugin:math
 ```
 
-## Web 服务集成
+# Web 服务集成
 
 Seneca不是一个Web框架。 但是，您仍然需要将其连接到您的Web服务API，你永远要记住的是，不要将你的内部行为模式暴露在外面，这不是一个好的安全的实践，相反的，你应该定义一组API模式，比如用属性 `role：api`，然后你可以将它们连接到你的内部微服务。
 
@@ -892,7 +892,7 @@ const seneca = Seneca()
   });
 ```
 
-启动 `hapi-app.js` 之后，访问 [http://localhost:3000/routes](http://localhost:3000/routes)，你便可以看到下面这样的信息：
+启动 `hapi-app.js` 之后，访问 <http://localhost:3000/routes>，你便可以看到下面这样的信息：
 
 ```javascript
 [
@@ -909,7 +909,7 @@ const seneca = Seneca()
 ]
 ```
 
-这表示，我们已经成功的将模式匹配更新至 `hapi` 应用的路由中。访问 [http://localhost:3000/api/calculate/sum?left=1&right=2](http://localhost:3000/api/calculate/sum?left=1&right=2) ，将得到结果：
+这表示，我们已经成功的将模式匹配更新至 `hapi` 应用的路由中。访问 <http://localhost:3000/api/calculate/sum?left=1&right=2> ，将得到结果：
 
 ```javascript
 {"answer":3}
@@ -973,5 +973,408 @@ node hapi-app.js --seneca.log=plugin:web,plugin:api
 
 访问下面的地址：
 
-- [http://localhost:3000/api/calculate/product?left=2&right=3](http://localhost:3000/api/calculate/product?left=2&right=3) 得到 `{"answer":6}`
-- [http://localhost:3000/api/calculate/sum?left=2&right=3](http://localhost:3000/api/calculate/sum?left=2&right=3) 得到 `{"answer":5}`
+- <http://localhost:3000/api/calculate/product?left=2&right=3> 得到 `{"answer":6}`
+- <http://localhost:3000/api/calculate/sum?left=2&right=3> 得到 `{"answer":5}`
+
+# 数据持久化
+
+一个真实的系统，肯定需要持久化数据，在Seneca中，你可以执行任何您喜欢的操作，使用任何类型的数据库层，但是，为什么不使用模式匹配和微服务的力量，使你的开发更轻松？
+
+模式匹配还意味着你可以推迟有关微服务数据的争论，比如服务是否应该"拥有"数据，服务是否应该访问共享数据库等，模式匹配意味着你可以在随后的任何时间重新配置你的系统。
+
+[seneca-entity](https://github.com/senecajs/seneca-entity) 提供了一个简单的数据抽象层（ORM），基于以下操作：
+
+- `load`：根据实体标识加载一个实体；
+- `save`：创建或更新（如果你提供了一个标识的话）一个实体；
+- `list`：列出匹配查询条件的所有实体；
+- `remove`：删除一个标识指定的实体。
+
+它们的匹配模式分别是：
+
+- `load`： `role:entity,cmd:load,name:<entity-name>`
+- `save`： `role:entity,cmd:save,name:<entity-name>`
+- `list`： `role:entity,cmd:list,name:<entity-name>`
+- `remove`： `role:entity,cmd:remove,name:<entity-name>`
+
+任何实现了这些模式的插件都可以被用于提供数据库（比如 [MySQL](https://www.npmjs.com/package/seneca-mysql-store)）访问。
+
+当数据的持久化与其它的一切都基于相同的机制提供时，微服务的开发将变得更容易，而这种机制，便是模式匹配消息。
+
+由于直接使用数据持久性模式可能变得乏味，所以 `seneca` 实体还提供了一个更熟悉的 `ActiveRecord` 风格的接口，要创建记录对象，请调用 `seneca.make` 方法。 记录对象有方法 `load$`、`save$`、`list$` 以及 `remove$`（所有方法都带有 `$` 后缀，以防止与数据字段冲突），数据字段只是对象属性。
+
+通过 `npm` 安装 `seneca-entity`， 然后在你的应用中使用 `seneca.use()` 方法加载至你的 `seneca` 实例。
+
+现在让我们先创建一个简单的数据实体，它保存 `book` 的详情。
+
+文件 [book.js](https://github.com/pantao/getting-started-seneca/blob/master/book.js)
+
+```javascript
+const seneca = require('seneca')();
+seneca.use('basic').use('entity');
+
+const book = seneca.make('book');
+book.title = 'Action in Seneca';
+book.price = 9.99;
+
+// 发送 role:entity,cmd:save,name:book 消息
+book.save$( console.log );
+```
+
+在上面的示例中，我们还使用了 [seneca-basic](https://github.com/senecajs/seneca-basic)，它是 `seneca-entity` 依赖的插件。
+
+执行上面的代码之后，我们可以看到下面这样的日志：
+
+```bash
+❯ node book.js
+null $-/-/book;id=byo81d;{title:Action in Seneca,price:9.99}
+```
+
+> Seneca 内置了 [mem-store](https://www.npmjs.com/package/seneca-mem-store)，这使得我们在本示例中，不需要使用任何其它数据库的支持也能进行完整的数据库持久操作（虽然，它并不是真正的持久化了）。
+
+由于数据的持久化永远都是使用的同样的消息模式集，所以，你可以非常简单的交互数据库，比如，你可能在开发的过程中使用的是 [MongoDB](https://www.npmjs.com/package/seneca-mongo-store)，而后，开发完成之后，在生产环境中使用 [Postgres](https://www.npmjs.com/package/seneca-postgres-store)。
+
+下面让我他创建一个简单的线上书店，我们可以通过它，快速的添加新书、获取书的详细信息以及购买一本书：
+
+[book-store.js](https://github.com/pantao/getting-started-seneca/blob/master/book-store.js)
+
+```javascript
+module.exports = function(options) {
+
+  // 从数据库中，查询一本ID为 `msg.id` 的书，我们使用了 `load$` 方法
+  this.add('role:store, get:book', function(msg, respond) {
+    this.make('book').load$(msg.id, respond);
+  });
+
+  // 向数据库中添加一本书，书的数据为 `msg.data`，我们使用了 `data$` 方法
+  this.add('role:store, add:book', function(msg, respond) {
+    this.make('book').data$(msg.data).save$(respond);
+  });
+
+  // 创建一条新的支付订单（在真实的系统中，经常是由商品详情布中的 *购买* 按钮触
+  // 发的事件），先是查询出ID为 `msg.id` 的书本，若查询出错，则直接返回错误，
+  // 否则，将书本的信息复制给 `purchase` 实体，并保存该订单，然后，我们发送了
+  // 一条 `role:store,info:purchase` 消息（但是，我们并不接收任何响应），
+  // 这条消息只是通知整个系统，我们现在有一条新的订单产生了，但是我并不关心谁会
+  // 需要它。
+  this.add('role:store, cmd:purchase', function(msg, respond) {
+    this.make('book').load$(msg.id, function(err, book) {
+      if (err) return respond(err);
+
+      this
+        .make('purchase')
+        .data$({
+          when: Date.now(),
+          bookId: book.id,
+          title: book.title,
+          price: book.price,
+        })
+        .save$(function(err, purchase) {
+          if (err) return respond(err);
+
+          this.act('role:store,info:purchase', {
+            purchase: purchase
+          });
+          respond(null, purchase);
+        });
+    });
+  });
+
+  // 最后，我们实现了 `role:store, info:purchase` 模式，就只是简单的将信息
+  // 打印出来， `seneca.log` 对象提供了 `debug`、`info`、`warn`、`error`、
+  // `fatal` 方法用于打印相应级别的日志。
+  this.add('role:store, info:purchase', function(msg, respond) {
+    this.log.info('purchase', msg.purchase);
+    respond();
+  });
+};
+```
+
+接下来，我们可以创建一个简单的单元测试，以验证我们前面创建的程序：
+
+[boot-store-test.js](https://github.com/pantao/getting-started-seneca/blob/master/book-store-test.js)
+
+```javascript
+// 使用 Node 内置的 `assert` 模块
+const assert = require('assert')
+
+const seneca = require('seneca')()
+  .use('basic')
+  .use('entity')
+  .use('book-store')
+  .error(assert.fail)
+
+// 添加一本书
+addBook()
+
+function addBook() {
+  seneca.act(
+    'role:store,add:book,data:{title:Action in Seneca,price:9.99}',
+    function(err, savedBook) {
+
+      this.act(
+        'role:store,get:book', {
+          id: savedBook.id
+        },
+        function(err, loadedBook) {
+
+          assert.equal(loadedBook.title, savedBook.title)
+
+          purchase(loadedBook);
+        }
+      )
+    }
+  )
+}
+
+function purchase(book) {
+  seneca.act(
+    'role:store,cmd:purchase', {
+      id: book.id
+    },
+    function(err, purchase) {
+      assert.equal(purchase.bookId, book.id)
+    }
+  )
+}
+```
+
+执行该测试：
+
+```bash
+❯ node book-store-test.js
+["purchase",{"entity$":"-/-/purchase","when":1483607360925,"bookId":"a2mlev","title":"Action in Seneca","price":9.99,"id":"i28xoc"}]
+```
+
+在一个生产应用中，我们对于上面的订单数据，可能会有单独的服务进行监控，而不是像上面这样，只是打印一条日志出来，那么，我们现在来创建一个新的服务，用于收集订单数据：
+
+[book-store-stats.js](https://github.com/pantao/getting-started-seneca/blob/master/book-store-stats.js)
+
+```javascript
+const stats = {};
+
+require('seneca')()
+  .add('role:store,info:purchase', function(msg, respond) {
+    const id = msg.purchase.bookId;
+    stats[id] = stats[id] || 0;
+    stats[id]++;
+    console.log(stats);
+    respond();
+  })
+  .listen({
+    port: 9003,
+    host: 'localhost',
+    pin: 'role:store,info:purchase'
+  });
+```
+
+然后，更新 `book-store-test.js` 文件：
+
+```javascript
+const seneca = require('seneca')()
+  .use('basic')
+  .use('entity')
+  .use('book-store')
+  .client({port:9003,host: 'localhost', pin:'role:store,info:purchase'})
+  .error(assert.fail);
+```
+
+此时，当有新的订单产生时，就会通知到订单监控服务了。
+
+## 将所有服务集成到一起
+
+通过上面的所有步骤，我们现在已经有四个服务了：
+
+- [book-store-stats.js](https://github.com/pantao/getting-started-seneca/blob/master/book-store-stats.js) ： 用于收集书店的订单信息；
+- [book-store-service.js](https://github.com/pantao/getting-started-seneca/blob/master/book-store-service.js) ：提供书店相关的功能；
+- [math-pin-service.js](https://github.com/pantao/getting-started-seneca/blob/master/math-pin-service.js)：提供一些数学相关的服务；
+- [app-all.js](https://github.com/pantao/getting-started-seneca/blob/master/app-all.js)：Web 服务
+
+`book-store-stats` 与 `math-pin-service` 我们已经有了，所以，直接启动即可：
+
+```bash
+node math-pin-service.js --seneca.log.all
+node book-store-stats.js --seneca.log.all
+```
+
+现在，我们需要一个 `book-store-service` ：
+
+```javascript
+require('seneca')()
+  .use('basic')
+  .use('entity')
+  .use('book-store')
+  .listen({
+    port: 9002,
+    host: 'localhost',
+    pin: 'role:store'
+  })
+  .client({
+    port: 9003,
+    host: 'localhost',
+    pin: 'role:store,info:purchase'
+  });
+```
+
+该服务接收任何 `role:store` 消息，但同时又将任何 `role:store,info:purchase` 消息发送至网络，**永远都要记住， client 与 listen 的 pin 配置必须完全一致**。
+
+现在，我们可以启动该服务：
+
+```bash
+node book-store-service.js --seneca.log.all
+```
+
+然后，创建我们的 `app-all.js`，首选，复制 `api.js` 文件到 [api-all.js](https://github.com/pantao/getting-started-seneca/blob/master/api-all.js)，这是我们的API。
+
+```javascript
+module.exports = function api(options) {
+
+  var validOps = {
+    sum: 'sum',
+    product: 'product'
+  }
+
+  this.add('role:api,path:calculate', function(msg, respond) {
+    var operation = msg.args.params.operation
+    var left = msg.args.query.left
+    var right = msg.args.query.right
+    this.act('role:math', {
+      cmd: validOps[operation],
+      left: left,
+      right: right,
+    }, respond)
+  });
+
+  this.add('role:api,path:store', function(msg, respond) {
+    let id = null;
+    if (msg.args.query.id) id = msg.args.query.id;
+    if (msg.args.body.id) id = msg.args.body.id;
+
+    const operation = msg.args.params.operation;
+    const storeMsg = {
+      role: 'store',
+      id: id
+    };
+    if ('get' === operation) storeMsg.get = 'book';
+    if ('purchase' === operation) storeMsg.cmd = 'purchase';
+    this.act(storeMsg, respond);
+  });
+
+  this.add('init:api', function(msg, respond) {
+    this.act('role:web', {
+      routes: {
+        prefix: '/api',
+        pin: 'role:api,path:*',
+        map: {
+          calculate: {
+            GET: true,
+            suffix: '/{operation}'
+          },
+          store: {
+            GET: true,
+            POST: true,
+            suffix: '/{operation}'
+          }
+        }
+      }
+    }, respond)
+  })
+
+}
+```
+
+最后， [app-all.js](https://github.com/pantao/getting-started-seneca/blob/master/app-all.js)：
+
+```javascript
+const Hapi = require('hapi');
+const Seneca = require('seneca');
+const SenecaWeb = require('seneca-web');
+
+const config = {
+  adapter: require('seneca-web-adapter-hapi'),
+  context: (() => {
+    const server = new Hapi.Server();
+    server.connection({
+      port: 3000
+    });
+
+    server.route({
+      path: '/routes',
+      method: 'get',
+      handler: (request, reply) => {
+        const routes = server.table()[0].table.map(route => {
+          return {
+            path: route.path,
+            method: route.method.toUpperCase(),
+            description: route.settings.description,
+            tags: route.settings.tags,
+            vhost: route.settings.vhost,
+            cors: route.settings.cors,
+            jsonp: route.settings.jsonp,
+          }
+        })
+        reply(routes)
+      }
+    });
+
+    return server;
+  })()
+};
+
+const seneca = Seneca()
+  .use(SenecaWeb, config)
+  .use('basic')
+  .use('entity')
+  .use('math')
+  .use('api-all')
+  .client({
+    type: 'tcp',
+    pin: 'role:math'
+  })
+  .client({
+    port: 9002,
+    host: 'localhost',
+    pin: 'role:store'
+  })
+  .ready(() => {
+    const server = seneca.export('web/context')();
+    server.start(() => {
+      server.log('server started on: ' + server.info.uri);
+    });
+  });
+
+// 创建一本示例书籍
+seneca.act(
+  'role:store,add:book', {
+    data: {
+      title: 'Action in Seneca',
+      price: 9.99
+    }
+  },
+  console.log
+)
+```
+
+启动该服务：
+
+```bash
+node app-all.js --seneca.log.all
+```
+
+从控制台我们可以看到下面这样的消息：
+
+```bash
+null $-/-/book;id=0r7mg7;{title:Action in Seneca,price:9.99}
+```
+
+这表示成功创建了一本ID为 `0r7mg7` 的书籍，现在，我们访问 [http://localhost:3000/api/store/get?id=0r7mg7](http://localhost:3000/api/store/get?id=0r7mg7) 即可查看该ID的书籍详情（ID是随机的，所以，你生成的ID可能并不是这样的）。
+
+[http://localhost:3000/routes](http://localhost:3000/routes) 可以查看所有的路由。
+
+然后我们可创建一个新的购买订单：
+
+```bash
+curl -d '{"id":"0r7mg7"}' -H "content-type:application/json" http://localhost:3000/api/store/purchase
+{"when":1483609872715,"bookId":"0r7mg7","title":"Action in Seneca","price":9.99,"id":"8suhf4"}
+```
+
+访问 [http://localhost:3000/api/calculate/sum?left=2&right=3](http://localhost:3000/api/calculate/sum?left=2&right=3) 可以得到 `{"answer":5}`。
